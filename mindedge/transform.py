@@ -1,7 +1,6 @@
 import logging
 
 from mindedge import BaseTransformer, BaseMapperMixin
-from mindedge.certificate_mapper import CertificateMapper
 from mindedge.course_mapper import CourseMapper
 from mindedge.import_history_data_keys import ImportHistoryDataKeys
 from mindedge.section_mapper import SectionMapper
@@ -10,8 +9,8 @@ from mindedge.course_catalog_mapper import CourseCatalogMapper
 from models.certificate.certificate import Certificate
 from services import transformer_service
 from services.import_history_data_service import ImportHistoryDataService
-from services.django_postgres.postgres_data_service import create_or_update_courses, create_or_update_category,\
-    create_or_update_course_category, create_or_update_store_course_sections
+from services.postgres_data_service import create_or_update_courses, create_or_update_category,\
+    create_or_update_course_category, create_or_update_store_course_sections, get_provider, upsert_certificate
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -23,6 +22,7 @@ class MindEdgeTransformer(BaseTransformer, BaseMapperMixin):
         super().__init__()
         self.importer = importer
         self.history_data_service = ImportHistoryDataService(import_history_id)
+        self.pg_provider = get_provider(self.importer.course_provider.id)
 
     @staticmethod
     def remove_deleted_courses(existing_course_ids, transformed_ids):
@@ -108,13 +108,11 @@ class MindEdgeTransformer(BaseTransformer, BaseMapperMixin):
         try:
             for item in Certificate.objects:
                 print(item.title)
-                # mapped_certificate = CertificateMapper(self.importer.course_provider.id).map(item)
-                # certificate = transformer_service.upsert_certificate(mapped_certificate)
-                #
-                # if certificate and certificate.id:
-                #     logger.info(f"Certificate transformed: {mapped_certificate['code']}")
-                # else:
-                #     logger.warning(f"Certificate could not be transformed: {mapped_certificate['code']}")
+                certificate = upsert_certificate(self.pg_provider, item)
+                if certificate and certificate.id:
+                    logger.info(f"Certificate transformed: {item.code}")
+                else:
+                    logger.warning(f"Certificate could not be transformed: {item.code}")
         except Exception as error:
             logger.error(f"Error in transforming certificate: {error}")
             raise error

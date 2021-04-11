@@ -33,8 +33,22 @@ DATABASES = {
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', __name__)
 django.setup()
+from shared_models.models import Certificate, CertificateCourse, CourseProvider, Course, Section, Catalog, Store,\
+    StoreCourse, CourseCatalog, StoreCourseSection
 
-from shared_models.models import CourseProvider, Course, Section, Catalog, Store, StoreCourse, CourseCatalog, StoreCourseSection
+
+def get_course(mongo_course_id):
+    try:
+        return Course.objects.get(content_db_reference=str(mongo_course_id))
+    except Course.DoesNotExist:
+        return
+
+
+def get_provider(mongo_provider_id):
+    try:
+        return CourseProvider.objects.get(content_db_reference=str(mongo_provider_id))
+    except CourseProvider.DoesNotExist as error:
+        raise error
 
 
 def get_store():
@@ -97,6 +111,49 @@ def create_or_update_category(data):
 
     catalog = Catalog.objects.create(**data)
     return catalog
+
+
+def upsert_certificate(pg_provider, certificate_obj):
+    try:
+        external_image_url = certificate_obj.default_image['original']
+    except KeyError:
+        external_image_url = ''
+
+    with scopes_disabled():
+        certificates = Certificate.objects.filter(content_db_reference=str(certificate_obj.id))
+
+        if certificates.exists():
+            certificates.update(
+                course_provider=pg_provider,
+                title=certificate_obj.title,
+                slug=certificate_obj.slug,
+                content_db_reference=str(certificate_obj.id),
+                external_image_url=external_image_url
+            )
+            certificate = certificates.first()
+        else:
+            certificate = Certificate.objects.create(
+                course_provider=pg_provider,
+                title=certificate_obj.title,
+                slug=certificate_obj.slug,
+                content_db_reference=str(certificate_obj.id),
+                external_image_url=external_image_url,
+                content_ready=True
+            )
+
+        for course_obj in certificate_obj.courses:
+            course = get_course(course_obj.id)
+            if not course:
+                continue
+
+            certificate_courses = CertificateCourse.objects.filter(certificate=certificate, course=course)
+            if not certificate_courses.exists():
+                CertificateCourse.objects.create(
+                    certificate=certificate,
+                    course=course
+                )
+
+        return certificate
 
 
 def create_or_update_courses(course_ids):
