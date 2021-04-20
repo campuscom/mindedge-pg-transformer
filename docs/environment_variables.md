@@ -11,9 +11,9 @@
 | KOMBU_HOST   | Messaging library host address |
 | KOMBU_EXCHANGE   | Messaging library exchange name |
 | KOMBU_QUEUE   | Messaging library queue name |
-| MONGO_DB   | MongoDB database name |
-| MONGO_HOST   | MongoDB Host name |
-| MONGO_PORT   | MongoDB Port |
-| MONGO_USERNAME   | MongoDB Username |
-| MONGO_PASSWORD   | MongoDB password |
-| MONGO_AUTH_DATABASE   | Authenticated Database |
+| MONGODB_DATABASE   | MongoDB database name |
+| MONGODB_HOST   | MongoDB Host name |
+| MONGODB_PORT   | MongoDB Port |
+| MONGODB_USERNAME   | MongoDB Username |
+| MONGODB_PASSWORD   | MongoDB password |
+| MONGODB_AUTH_DATABASE   | Authenticated Database |
