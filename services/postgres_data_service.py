@@ -115,8 +115,10 @@ def create_or_update_category(data):
 
 def upsert_certificate(pg_provider, certificate_obj):
     try:
+        price = certificate_obj.price['amount']
         external_image_url = certificate_obj.default_image['original']
     except KeyError:
+        price = 0
         external_image_url = ''
 
     with scopes_disabled():
@@ -128,7 +130,8 @@ def upsert_certificate(pg_provider, certificate_obj):
                 title=certificate_obj.title,
                 slug=certificate_obj.slug,
                 content_db_reference=str(certificate_obj.id),
-                external_image_url=external_image_url
+                external_image_url=external_image_url,
+                price=price
             )
             certificate = certificates.first()
         else:
@@ -138,6 +141,7 @@ def upsert_certificate(pg_provider, certificate_obj):
                 slug=certificate_obj.slug,
                 content_db_reference=str(certificate_obj.id),
                 external_image_url=external_image_url,
+                price=price,
                 content_ready=True
             )
 
